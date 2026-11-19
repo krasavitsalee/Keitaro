@@ -308,6 +308,10 @@
     async function loadCampaigns() {
       try {
         allCampaigns = await (await fetch('/api/editor/campaigns')).json();
+        if (!Array.isArray(allCampaigns) || !allCampaigns.length) {
+          showToast('В Keitaro нет кампаний', true);
+          return;
+        }
         renderCampaigns(allCampaigns);
         const sel = document.getElementById('campaign');
         sel.innerHTML = '';

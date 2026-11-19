@@ -90,6 +90,8 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     payload.country_code = payload.country_code.upper().strip()
     if len(payload.country_code) != 2 or payload.country_code not in _VALID_COUNTRIES:
         raise HTTPException(status_code=400, detail="Неверный код страны. Используйте ISO-код, например DE, US, RU")
+    if payload.offer_id <= 0:
+        raise HTTPException(status_code=400, detail="ID оффера должен быть положительным числом")
     kt = KeitaroClient()
     # check for duplicate campaign name
     try:
@@ -113,7 +115,7 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     if ts_id is None:
         raise HTTPException(status_code=400, detail="В Keitaro нет доступных источников трафика")
 
-    alias = slugify(payload.name) + "-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
+    alias = (slugify(payload.name) + "-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6)))[:64]
     try:
         campaign = kt.create_campaign({
             "name": payload.name,

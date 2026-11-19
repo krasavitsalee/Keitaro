@@ -138,6 +138,10 @@
         fill('domain_id', domains);
         fill('group_id', groups);
         fill('traffic_source_id', sources);
+        if (!domains.length) {
+          showToast('В Keitaro нет доступных доменов', true);
+          document.querySelector('button[type=submit]').disabled = true;
+        }
       } catch (e) { showToast('Не удалось загрузить опции: ' + e, true); }
     }
     loadOpts();
