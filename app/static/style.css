@@ -118,7 +118,7 @@ a{color:inherit;text-decoration:none}
 .badge-active{background:transparent;color:var(--emerald);border-color:var(--emerald)}
 .badge-disabled{background:transparent;color:var(--red);border-color:var(--red)}
 
-.stream-card{padding:24px;margin-bottom:0;border:1px solid var(--ivory);border-bottom:none;background:var(--ivory);color:var(--black)}
+.stream-card{padding:24px;margin-bottom:0;border:1px solid var(--ivory);border-bottom:none;background:var(--bg);color:var(--ivory)}
 .stream-card:last-child{border-bottom:1px solid var(--ivory)}
 .stream-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .stream-name{font-family:'Anton',sans-serif;font-size:20px;letter-spacing:.03em;text-transform:uppercase}
