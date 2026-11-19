@@ -13,7 +13,12 @@ class KeitaroClient:
         return f"{self.base_url}/admin_api/v1"
 
     def _headers(self) -> Dict[str, str]:
-        return {"Api-Key": self.api_key, "Content-Type": "application/json"}
+        # Send both auth styles; Keitaro accepts either, this maximizes compatibility.
+        return {
+            "Api-Key": self.api_key,
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
 
     def _request(self, method: str, path: str, **kwargs) -> Any:
         url = f"{self.admin_base}{path}"

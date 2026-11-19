@@ -76,9 +76,9 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     })
     cid = campaign["id"]
 
-    # Stream 1: country -> Google
+    # Stream 1: country -> Google (try 'country' filter, fallback to 'geo' for older Keitaro)
     redirect_action = kt.pick_redirect_action() or "redirect"
-    kt.create_stream({
+    stream1_payload = {
         "campaign_id": cid,
         "type": "regular",
         "name": f"Google ({payload.country_code})",
@@ -88,7 +88,12 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
         "position": 1,
         "state": "active",
         "filters": [{"name": "country", "mode": "accept", "payload": [payload.country_code]}],
-    })
+    }
+    try:
+        kt.create_stream(stream1_payload)
+    except RuntimeError:
+        stream1_payload["filters"] = [{"name": "geo", "mode": "accept", "payload": [payload.country_code]}]
+        kt.create_stream(stream1_payload)
 
     # Stream 2: offer
     landing_action = kt.pick_landing_action() or "show_landing_page"
