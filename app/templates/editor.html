@@ -242,16 +242,19 @@
       const addBtn = document.createElement('button');
       addBtn.className = 'btn btn-primary btn-sm';
       addBtn.textContent = '+ Добавить оффер';
+      addBtn.disabled = true;
+      searchInput.addEventListener('input', () => { selectedOfferId = null; addBtn.disabled = true; });
+      dropdown.addEventListener('click', () => { setTimeout(() => { addBtn.disabled = selectedOfferId === null; }, 0); });
       addBtn.onclick = () => {
         if (selectedOfferId === null) {
-          // try parse from input
           const m = searchInput.value.match(/#(\d+)/);
           if (m) selectedOfferId = parseInt(m[1]);
         }
-        if (isNaN(selectedOfferId)) { showToast('Выбери оффер из списка', true); return; }
+        if (isNaN(selectedOfferId)) { showToast('Сначала выбери оффер из списка', true); return; }
         addOffer(stream.id, selectedOfferId);
         selectedOfferId = null;
         searchInput.value = '';
+        addBtn.disabled = true;
       };
       addRow.appendChild(addBtn);
       div.appendChild(addRow);
