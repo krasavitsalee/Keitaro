@@ -171,12 +171,13 @@
       // add row
       const addRow = document.createElement('div');
       addRow.className = 'add-row';
+      addRow.style.flexWrap = 'wrap';
       const searchInput = document.createElement('input');
       searchInput.type = 'text';
-      searchInput.placeholder = 'Поиск оффера…';
-      searchInput.style.cssText = 'flex:1; padding:10px; border:1px solid var(--border); background:var(--bg); color:var(--ivory); font-size:13px;';
+      searchInput.placeholder = '🔍 Поиск оффера по названию или ID…';
+      searchInput.style.cssText = 'flex:1 1 200px; padding:10px 12px; border:1px solid var(--ivory); background:var(--bg); color:var(--ivory); font-size:13px;';
       const sel = document.createElement('select');
-      sel.style.cssText = 'flex:2; padding:10px; border:1px solid var(--border); background:var(--bg); color:var(--ivory); font-size:13px;';
+      sel.style.cssText = 'flex:2 1 260px; padding:10px 12px; border:1px solid var(--ivory); background:var(--bg); color:var(--ivory); font-size:13px;';
       function populateSelect(filter='') {
         const used = new Set(st.offers.map(o => o.offer_id));
         const q = filter.toLowerCase();
