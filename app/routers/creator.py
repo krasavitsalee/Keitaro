@@ -71,10 +71,15 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     except Exception:
         pass
     domain_id = payload.domain_id or kt.ensure_domain()
-    group_id = payload.group_id or kt.ensure_group()
+    try:
+        group_id = payload.group_id or kt.ensure_group()
+    except Exception:
+        group_id = None
     ts_id = payload.traffic_source_id or kt.ensure_traffic_source()
     if domain_id is None:
         raise HTTPException(status_code=400, detail="В Keitaro нет доступных доменов")
+    if group_id is None:
+        raise HTTPException(status_code=400, detail="В Keitaro нет доступных групп")
 
     alias = slugify(payload.name) + "-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
     camp_data = {
