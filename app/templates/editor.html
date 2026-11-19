@@ -118,6 +118,14 @@
       meta.innerHTML = '<span>id: ' + stream.id + '</span><span>type: ' + stream.type + '</span><span>schema: ' + stream.schema + '</span><span>pos: ' + stream.position + '</span>';
       div.appendChild(meta);
 
+      if (stream.schema !== 'landings') {
+        const info = document.createElement('div');
+        info.style.padding = '12px';
+        info.style.color = 'var(--gray)';
+        info.textContent = 'Редирект: ' + (stream.action_payload || '—') + ' (офферы не используются)';
+        div.appendChild(info);
+        return div;
+      }
       const table = document.createElement('table');
       table.className = 'offer-table';
       table.innerHTML = '<thead><tr><th>Оффер</th><th>Вес %</th><th>Закрепить</th><th>Статус</th><th>Действие</th></tr></thead>';
