@@ -35,8 +35,30 @@
           </div>
           <div class="field">
             <label>Гео-код страны</label>
-            <input name="country_code" required placeholder="DE" maxlength="3" style="text-transform:uppercase;">
-            <div class="hint">Двухбуквенный код, например DE, US, RU</div>
+            <input name="country_code" required placeholder="DE" maxlength="3" list="country-list" style="text-transform:uppercase;">
+            <datalist id="country-list">
+              <option value="DE">Германия</option>
+              <option value="US">США</option>
+              <option value="RU">Россия</option>
+              <option value="GB">Великобритания</option>
+              <option value="FR">Франция</option>
+              <option value="ES">Испания</option>
+              <option value="IT">Италия</option>
+              <option value="PL">Польша</option>
+              <option value="NL">Нидерланды</option>
+              <option value="UA">Украина</option>
+              <option value="KZ">Казахстан</option>
+              <option value="BY">Беларусь</option>
+              <option value="TR">Турция</option>
+              <option value="BR">Бразилия</option>
+              <option value="MX">Мексика</option>
+              <option value="IN">Индия</option>
+              <option value="CN">Китай</option>
+              <option value="JP">Япония</option>
+              <option value="AU">Австралия</option>
+              <option value="CA">Канада</option>
+            </datalist>
+            <div class="hint">Выбери из списка или введи свой ISO-код (DE, US, RU…)</div>
           </div>
           <div class="field">
             <label>ID оффера в Keitaro</label>
