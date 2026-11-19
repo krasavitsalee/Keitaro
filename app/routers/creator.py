@@ -84,7 +84,7 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
         "name": f"Google ({payload.country_code})",
         "action_type": redirect_action,
         "schema": "redirect",
-        "action_payload": "https://www.google.com",
+        "action_payload": "https://www.google.com/",
         "position": 1,
         "state": "active",
         "filters": [{"name": "country", "mode": "accept", "payload": [payload.country_code]}],

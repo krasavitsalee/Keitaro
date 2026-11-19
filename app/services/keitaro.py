@@ -61,8 +61,21 @@ class KeitaroClient:
         try:
             return self._request("PUT", f"/streams/{stream_id}", json=data)
         except RuntimeError as e:
-            if "404" in str(e) or "405" in str(e):
+            msg = str(e)
+            if "404" in msg or "405" in msg:
                 return self._request("POST", f"/streams/{stream_id}", json=data)
+            if "400" in msg:
+                # retry with a reduced payload (some fields may be read-only on this instance)
+                reduced = {k: v for k, v in data.items() if k in (
+                    "name", "action_type", "schema", "state", "filters", "landings", "offers",
+                    "action_payload", "action_options", "comments", "filter_or", "collect_clicks",
+                )}
+                try:
+                    return self._request("PUT", f"/streams/{stream_id}", json=reduced)
+                except RuntimeError as e2:
+                    if "404" in str(e2) or "405" in str(e2):
+                        return self._request("POST", f"/streams/{stream_id}", json=reduced)
+                    raise
             raise
 
     def delete_stream(self, stream_id: int) -> Any:
