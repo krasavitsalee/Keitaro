@@ -60,7 +60,7 @@ def _stream_update_payload(stream: dict, new_offers: list) -> dict:
 
 @router.get("/editor", response_class=HTMLResponse)
 def editor_page(request: Request):
-    return templates.TemplateResponse("editor.html", {"request": request})
+    return templates.TemplateResponse(request, "editor.html", {"request": request})
 
 
 @router.get("/api/editor/campaigns")

@@ -34,7 +34,7 @@ class CreateCampaignIn(BaseModel):
 
 @router.get("/creator", response_class=HTMLResponse)
 def creator_page(request: Request):
-    return templates.TemplateResponse("creator.html", {"request": request})
+    return templates.TemplateResponse(request, "creator.html", {"request": request})
 
 
 @router.get("/api/keitaro/domains")
