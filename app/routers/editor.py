@@ -87,6 +87,15 @@ def editor_offers():
     return KeitaroClient().list_offers()
 
 
+@router.get("/api/editor/offers/search")
+def search_offers(q: str = ""):
+    offers = KeitaroClient().list_offers()
+    q = (q or "").lower().strip()
+    if not q:
+        return offers
+    return [o for o in offers if q in str(o.get("name", "")).lower() or q in str(o.get("id", ""))]
+
+
 @router.get("/api/editor/streams/{stream_id}")
 def editor_stream(stream_id: int):
     return KeitaroClient().get_stream(stream_id)

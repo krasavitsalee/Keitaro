@@ -187,37 +187,50 @@
       comboWrap.appendChild(dropdown);
 
       let selectedOfferId = null;
+      let searchTimer = null;
       function renderDropdown(filter='') {
         const used = new Set(st.offers.map(o => o.offer_id));
-        const q = filter.toLowerCase();
         dropdown.innerHTML = '';
-        let count = 0;
-        allOffers.forEach(o => {
-          if (used.has(o.id)) return;
-          if (q && !o.name.toLowerCase().includes(q) && !String(o.id).includes(q)) return;
-          const item = document.createElement('div');
-          item.style.cssText = 'padding:10px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--gray-2);';
-          item.textContent = o.name + '  (#' + o.id + ')';
-          item.addEventListener('mouseenter', () => { item.style.background = 'var(--red)'; item.style.color = 'var(--ivory)'; });
-          item.addEventListener('mouseleave', () => { item.style.background = ''; item.style.color = ''; });
-          item.addEventListener('click', () => {
-            selectedOfferId = o.id;
-            searchInput.value = o.name + '  (#' + o.id + ')';
-            dropdown.style.display = 'none';
-          });
-          dropdown.appendChild(item);
-          count++;
-        });
-        if (!count) {
-          const empty = document.createElement('div');
-          empty.style.cssText = 'padding:10px 12px; color:var(--gray); font-size:13px;';
-          empty.textContent = 'Ничего не найдено';
-          dropdown.appendChild(empty);
-        }
+        const loading = document.createElement('div');
+        loading.style.cssText = 'padding:10px 12px; color:var(--gray); font-size:13px;';
+        loading.textContent = 'Поиск в Keitaro…';
+        dropdown.appendChild(loading);
         dropdown.style.display = 'block';
+        fetch('/api/editor/offers/search?q=' + encodeURIComponent(filter))
+          .then(r => r.json())
+          .then(list => {
+            dropdown.innerHTML = '';
+            let count = 0;
+            list.forEach(o => {
+              if (used.has(o.id)) return;
+              const item = document.createElement('div');
+              item.style.cssText = 'padding:10px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--gray-2);';
+              item.textContent = o.name + '  (#' + o.id + ')';
+              item.addEventListener('mouseenter', () => { item.style.background = 'var(--red)'; item.style.color = 'var(--ivory)'; });
+              item.addEventListener('mouseleave', () => { item.style.background = ''; item.style.color = ''; });
+              item.addEventListener('click', () => {
+                selectedOfferId = o.id;
+                searchInput.value = o.name + '  (#' + o.id + ')';
+                dropdown.style.display = 'none';
+              });
+              dropdown.appendChild(item);
+              count++;
+            });
+            if (!count) {
+              const empty = document.createElement('div');
+              empty.style.cssText = 'padding:10px 12px; color:var(--gray); font-size:13px;';
+              empty.textContent = 'Ничего не найдено';
+              dropdown.appendChild(empty);
+            }
+          })
+          .catch(() => { dropdown.innerHTML = '<div style="padding:10px 12px;color:var(--gray);font-size:13px;">Ошибка поиска</div>'; });
       }
       searchInput.addEventListener('focus', () => renderDropdown(searchInput.value));
-      searchInput.addEventListener('input', (e) => { selectedOfferId = null; renderDropdown(e.target.value); });
+      searchInput.addEventListener('input', (e) => {
+        selectedOfferId = null;
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => renderDropdown(e.target.value), 300);
+      });
       document.addEventListener('click', (e) => {
         if (!comboWrap.contains(e.target)) dropdown.style.display = 'none';
       });
