@@ -148,8 +148,10 @@
           const addBtn = document.createElement('button');
           addBtn.className = 'btn btn-primary btn-sm';
           addBtn.textContent = '+ Добавить оффер';
+          if (!offers.length) { addBtn.disabled = true; addBtn.title = 'Нет доступных офферов'; }
           addBtn.onclick = async () => {
             const oid = parseInt(sel.value);
+            if (isNaN(oid)) { showToast('Нет доступных офферов', true); return; }
             const r = await fetch('/api/editor/streams/' + s.id + '/offers/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: oid})});
             const j = await r.json();
             if (j.ok) { showToast('Оффер добавлен'); log('add offer ' + oid + ' to stream ' + s.id); document.getElementById('load').click(); }
