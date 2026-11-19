@@ -74,15 +74,20 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     ts_id = payload.traffic_source_id or kt.ensure_traffic_source()
 
     alias = slugify(payload.name) + "-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
-    campaign = kt.create_campaign({
-        "name": payload.name,
-        "alias": alias,
-        "type": "position",
-        "state": "active",
-        "domain_id": domain_id,
-        "group_id": group_id,
-        "traffic_source_id": ts_id,
-    })
+    try:
+        campaign = kt.create_campaign({
+            "name": payload.name,
+            "alias": alias,
+            "type": "position",
+            "state": "active",
+            "domain_id": domain_id,
+            "group_id": group_id,
+            "traffic_source_id": ts_id,
+        })
+    except RuntimeError as e:
+        if "already used" in str(e).lower() or "422" in str(e):
+            raise HTTPException(status_code=400, detail="Название кампании не может повторяться")
+        raise
     cid = campaign["id"]
 
     # Stream 1: country -> Google (try 'country' filter, fallback to 'geo' for older Keitaro)
