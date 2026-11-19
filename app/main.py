@@ -29,7 +29,14 @@ def index():
 <body>
 <header class="topbar"><div class="topbar-inner">
   <a href="/" class="logo"><div class="logo-mark">K</div><span>Keitaro Wrapper</span></a>
-  <div class="topbar-actions"><div class="status-dot">Подключено к Keitaro</div></div>
+  <div class="topbar-actions">
+    <nav class="topbar-nav">
+      <a href="/" class="active">Главная</a>
+      <a href="/creator">Создаватор</a>
+      <a href="/editor">Редактор</a>
+    </nav>
+    <div class="status-dot">Подключено к Keitaro</div>
+  </div>
 </div></header>
 <main class="container">
   <div class="hero">
