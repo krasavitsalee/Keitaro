@@ -20,4 +20,39 @@ app.include_router(editor.router)
 @app.get("/")
 def index():
     from fastapi.responses import HTMLResponse
-    return HTMLResponse('<h1>Keitaro Wrapper</h1><ul><li><a href="/creator">Создаватор кампаний</a></li><li><a href="/editor">Редактор кампаний</a></li></ul>')
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Keitaro Wrapper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<header class="topbar"><div class="topbar-inner">
+  <a href="/" class="logo"><div class="logo-mark">K</div><span>Keitaro Wrapper</span></a>
+  <div class="topbar-actions"><div class="status-dot">Подключено к Keitaro</div></div>
+</div></header>
+<main class="container">
+  <div class="hero">
+    <h1>Управляйте кампаниями Keitaro в один клик</h1>
+    <p>Создавайте кампании с двумя потоками и редактируйте офферы — без ручной работы в трекере.</p>
+  </div>
+  <div class="cta-grid">
+    <a href="/creator" class="glass cta-card blue" style="text-decoration:none;color:inherit;">
+      <div class="icon">🚀</div><h3>Создать кампанию</h3>
+      <p>Название, страна, оффер — и кампания готова с двумя потоками.</p>
+      <span class="arrow">→</span>
+    </a>
+    <a href="/editor" class="glass cta-card green" style="text-decoration:none;color:inherit;">
+      <div class="icon">⚙️</div><h3>Редактировать кампанию</h3>
+      <p>Добавляйте и удаляйте офферы в потоках существующих кампаний.</p>
+      <span class="arrow">→</span>
+    </a>
+  </div>
+  <div class="stats-row">
+    <div class="glass stat"><div class="num" style="color:var(--blue);">2</div><div class="label">Потока</div></div>
+    <div class="glass stat"><div class="num" style="color:var(--emerald);">1</div><div class="label">Оффер</div></div>
+    <div class="glass stat"><div class="num" style="color:var(--amber);">1</div><div class="label">Страна</div></div>
+    <div class="glass stat"><div class="num" style="color:var(--purple);">∞</div><div class="label">Скорость</div></div>
+  </div>
+</main>
+</body></html>""")

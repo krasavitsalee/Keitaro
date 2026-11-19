@@ -2,55 +2,147 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Создаватор кампаний Keitaro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Создаватор кампаний — Keitaro Wrapper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <h1>Создаватор кампаний</h1>
-  <form id="create-form">
-    <label>Название кампании: <input name="name" required></label><br>
-    <label>Гео-код страны: <input name="country_code" required placeholder="DE"></label><br>
-    <label>ID оффера: <input name="offer_id" type="number" required></label><br>
-    <label>Домен: <select name="domain_id" id="domain_id"></select></label><br>
-    <label>Группа: <select name="group_id" id="group_id"></select></label><br>
-    <label>Источник: <select name="traffic_source_id" id="traffic_source_id"></select></label><br>
-    <button type="submit">Создать кампанию</button>
-  </form>
-  <pre id="result"></pre>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="logo">
+        <div class="logo-mark">K</div>
+        <span>Keitaro Wrapper</span>
+      </a>
+      <div class="topbar-actions">
+        <div class="status-dot">Подключено к Keitaro</div>
+        <button class="theme-toggle" title="Тема">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding-top: 40px;">
+    <div class="hero" style="padding: 24px 0 32px;">
+      <h1>Создаватор кампаний</h1>
+      <p>Создайте кампанию с двумя потоками за один клик: страна → Google, остальные → оффер.</p>
+    </div>
+
+    <div class="form-grid fade-in">
+      <div class="glass form-card">
+        <div class="section-title" style="font-size:20px;">Параметры кампании</div>
+        <form id="create-form">
+          <div class="field">
+            <label>Название кампании</label>
+            <input name="name" required placeholder="test_ivanov_campaign1">
+            <div class="hint">Рекомендуется префикс <span class="prefix-highlight">test_фамилия_</span></div>
+          </div>
+          <div class="field">
+            <label>Гео-код страны</label>
+            <input name="country_code" required placeholder="DE" maxlength="3" style="text-transform:uppercase;">
+            <div class="hint">Двухбуквенный код, например DE, US, RU</div>
+          </div>
+          <div class="field">
+            <label>ID оффера в Keitaro</label>
+            <input name="offer_id" type="number" required placeholder="18813">
+          </div>
+          <div class="field">
+            <label>Домен</label>
+            <select name="domain_id" id="domain_id"></select>
+          </div>
+          <div class="field">
+            <label>Группа</label>
+            <select name="group_id" id="group_id"></select>
+          </div>
+          <div class="field">
+            <label>Источник трафика</label>
+            <select name="traffic_source_id" id="traffic_source_id"></select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px;">
+            <span>🚀</span> Создать кампанию
+          </button>
+        </form>
+        <pre id="result" class="result" style="display:none;"></pre>
+      </div>
+
+      <div class="glass preview-panel">
+        <div class="preview-title">Структура кампании</div>
+        <div class="flow-scheme">
+          <div class="flow-node">
+            <div class="flow-head"><span class="flow-icon">🌍</span><span class="flow-name">Поток 1 — Страна</span></div>
+            <div class="flow-desc">Ловит всех из указанной страны (geo-фильтр) и редиректит на Google</div>
+          </div>
+          <div class="flow-arrow">↓</div>
+          <div class="neon-line"></div>
+          <div class="flow-node">
+            <div class="flow-head"><span class="flow-icon">🎯</span><span class="flow-name">Поток 2 — Оффер</span></div>
+            <div class="flow-desc">Все остальные посетители редиректятся на выбранный оффер</div>
+          </div>
+        </div>
+        <div style="margin-top: 24px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Подсказка</div>
+          <div style="font-size:13px; line-height:1.5;">Кампания создаётся в режиме <b>position</b> (последовательная проверка потоков). Домен, группа и источник подтягиваются из Keitaro API.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
   <script>
+    function showToast(msg, err=false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (err ? ' error' : '');
+      setTimeout(() => t.className = 'toast', 3500);
+    }
     async function loadOpts() {
-      const domains = await (await fetch('/api/keitaro/domains')).json();
-      const groups = await (await fetch('/api/keitaro/groups')).json();
-      const sources = await (await fetch('/api/keitaro/sources')).json();
-      const fill = (id, items, labelKey='name') => {
-        const sel = document.getElementById(id);
-        sel.innerHTML = '';
-        items.forEach(it => {
-          const o = document.createElement('option');
-          o.value = it.id;
-          o.textContent = (it.name || it.id) + ' (id ' + it.id + ')';
-          sel.appendChild(o);
-        });
-      };
-      fill('domain_id', domains);
-      fill('group_id', groups);
-      fill('traffic_source_id', sources);
+      try {
+        const domains = await (await fetch('/api/keitaro/domains')).json();
+        const groups = await (await fetch('/api/keitaro/groups')).json();
+        const sources = await (await fetch('/api/keitaro/sources')).json();
+        const fill = (id, items) => {
+          const sel = document.getElementById(id);
+          sel.innerHTML = '';
+          items.forEach(it => {
+            const o = document.createElement('option');
+            o.value = it.id;
+            o.textContent = (it.name || ('id ' + it.id)) + '  (#' + it.id + ')';
+            sel.appendChild(o);
+          });
+        };
+        fill('domain_id', domains);
+        fill('group_id', groups);
+        fill('traffic_source_id', sources);
+      } catch (e) { showToast('Не удалось загрузить опции: ' + e, true); }
     }
     loadOpts();
     document.getElementById('create-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fd = new FormData(e.target);
+      const btn = e.target.querySelector('button[type=submit]');
+      btn.disabled = true; btn.textContent = 'Создаём…';
       const body = {
         name: fd.get('name'),
-        country_code: fd.get('country_code'),
+        country_code: fd.get('country_code').toUpperCase(),
         offer_id: parseInt(fd.get('offer_id')),
         domain_id: parseInt(fd.get('domain_id')),
         group_id: parseInt(fd.get('group_id')),
         traffic_source_id: parseInt(fd.get('traffic_source_id')),
       };
-      const r = await fetch('/api/creator/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
-      const j = await r.json();
-      document.getElementById('result').textContent = JSON.stringify(j, null, 2);
+      try {
+        const r = await fetch('/api/creator/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+        const j = await r.json();
+        const pre = document.getElementById('result');
+        pre.style.display = 'block';
+        pre.textContent = JSON.stringify(j, null, 2);
+        if (j.ok) showToast('Кампания создана: ' + body.name);
+        else showToast('Ошибка создания', true);
+      } catch (err) {
+        showToast('Ошибка: ' + err, true);
+      } finally {
+        btn.disabled = false; btn.innerHTML = '<span>🚀</span> Создать кампанию';
+      }
     });
   </script>
 </body>

@@ -2,88 +2,173 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Редактор кампаний Keitaro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Редактор кампаний — Keitaro Wrapper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <h1>Редактор кампании</h1>
-  <label>Кампания: <select id="campaign"></select></label>
-  <button id="load">Загрузить</button>
-  <div id="streams"></div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a href="/" class="logo">
+        <div class="logo-mark">K</div>
+        <span>Keitaro Wrapper</span>
+      </a>
+      <div class="topbar-actions">
+        <div class="status-dot">Подключено к Keitaro</div>
+        <button class="theme-toggle" title="Тема">◐</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding-top: 32px;">
+    <div class="hero" style="padding: 16px 0 24px;">
+      <h1 style="font-size:36px;">Редактор кампаний</h1>
+      <p>Добавляйте и удаляйте офферы в потоках существующих кампаний.</p>
+    </div>
+
+    <div class="editor-layout fade-in">
+      <div class="glass campaign-list">
+        <input class="search-box" id="search" placeholder="Поиск кампании…">
+        <div id="campaigns"></div>
+      </div>
+
+      <div>
+        <div class="glass" style="padding:20px; margin-bottom:16px; display:flex; gap:12px; align-items:center;">
+          <select id="campaign" style="flex:1; padding:12px; border-radius:var(--radius-sm); background:rgba(0,0,0,0.35); border:1px solid var(--border); color:var(--text);"></select>
+          <button id="load" class="btn btn-primary">Загрузить</button>
+        </div>
+        <div id="streams"></div>
+        <div class="glass log-box">
+          <div class="preview-title">Лог изменений</div>
+          <div id="log"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
   <script>
+    function showToast(msg, err=false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (err ? ' error' : '');
+      setTimeout(() => t.className = 'toast', 3500);
+    }
+    function log(msg) {
+      const d = document.getElementById('log');
+      const e = document.createElement('div');
+      e.className = 'log-entry';
+      e.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+      d.prepend(e);
+    }
+    let allCampaigns = [];
     async function loadCampaigns() {
-      const camps = await (await fetch('/api/editor/campaigns')).json();
-      const sel = document.getElementById('campaign');
-      sel.innerHTML = '';
-      camps.forEach(c => {
-        const o = document.createElement('option');
-        o.value = c.id;
-        o.textContent = c.name + ' (id ' + c.id + ')';
-        sel.appendChild(o);
+      try {
+        allCampaigns = await (await fetch('/api/editor/campaigns')).json();
+        renderCampaigns(allCampaigns);
+        const sel = document.getElementById('campaign');
+        sel.innerHTML = '';
+        allCampaigns.forEach(c => {
+          const o = document.createElement('option');
+          o.value = c.id;
+          o.textContent = c.name + '  (#' + c.id + ')';
+          sel.appendChild(o);
+        });
+      } catch (e) { showToast('Ошибка загрузки кампаний: ' + e, true); }
+    }
+    function renderCampaigns(list) {
+      const container = document.getElementById('campaigns');
+      container.innerHTML = '';
+      list.forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'campaign-item';
+        div.innerHTML = '<div class="cname">' + c.name + '</div><div class="cid">#' + c.id + '</div>';
+        div.onclick = () => {
+          document.getElementById('campaign').value = c.id;
+          document.getElementById('load').click();
+          document.querySelectorAll('.campaign-item').forEach(x => x.classList.remove('active'));
+          div.classList.add('active');
+        };
+        container.appendChild(div);
       });
     }
+    document.getElementById('search').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase();
+      renderCampaigns(allCampaigns.filter(c => c.name.toLowerCase().includes(q)));
+    });
     loadCampaigns();
 
     document.getElementById('load').addEventListener('click', async () => {
       const cid = document.getElementById('campaign').value;
-      const streams = await (await fetch('/api/editor/campaigns/' + cid + '/streams')).json();
-      const offers = await (await fetch('/api/editor/offers')).json();
-      const container = document.getElementById('streams');
-      container.innerHTML = '';
-      streams.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'stream';
-        const title = document.createElement('h3');
-        title.textContent = (s.name || 'Stream') + ' (id ' + s.id + ')';
-        div.appendChild(title);
-        const offersDiv = document.createElement('div');
-        offersDiv.innerHTML = '<b>Офферы:</b> ' + (s.offers||[]).map(o=>o.offer_id).join(', ');
-        div.appendChild(offersDiv);
+      if (!cid) return;
+      try {
+        const streams = await (await fetch('/api/editor/campaigns/' + cid + '/streams')).json();
+        const offers = await (await fetch('/api/editor/offers')).json();
+        const container = document.getElementById('streams');
+        container.innerHTML = '';
+        streams.forEach(s => {
+          const div = document.createElement('div');
+          div.className = 'glass stream-card fade-in';
+          const title = document.createElement('div');
+          title.className = 'stream-head';
+          title.innerHTML = '<span class="stream-name">' + (s.name || 'Stream') + '</span><span class="badge ' + (s.state === 'active' ? 'badge-active' : 'badge-disabled') + '">' + s.state + '</span>';
+          div.appendChild(title);
 
-        // add offer select
-        const sel = document.createElement('select');
-        sel.id = 'addsel_' + s.id;
-        offers.forEach(o => {
-          const opt = document.createElement('option');
-          opt.value = o.id;
-          opt.textContent = o.name + ' (id ' + o.id + ')';
-          sel.appendChild(opt);
+          const meta = document.createElement('div');
+          meta.className = 'stream-meta';
+          meta.innerHTML = '<span>id: ' + s.id + '</span><span>type: ' + s.type + '</span><span>schema: ' + s.schema + '</span><span>pos: ' + s.position + '</span>';
+          div.appendChild(meta);
+
+          const offersWrap = document.createElement('div');
+          offersWrap.innerHTML = '<b style="font-size:13px;color:var(--muted);">Офферы:</b> ';
+          (s.offers || []).forEach(o => {
+            const chip = document.createElement('span');
+            chip.className = 'offer-chip';
+            chip.innerHTML = 'offer #' + o.offer_id + '<span class="remove" data-oid="' + o.offer_id + '">✕</span>';
+            chip.querySelector('.remove').onclick = async () => {
+              const r = await fetch('/api/editor/streams/' + s.id + '/offers/remove', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: o.offer_id})});
+              const j = await r.json();
+              if (j.ok) { showToast('Оффер удалён'); log('remove offer ' + o.offer_id + ' from stream ' + s.id); document.getElementById('load').click(); }
+              else showToast(j.detail || 'Ошибка', true);
+            };
+            offersWrap.appendChild(chip);
+          });
+          if (!(s.offers||[]).length) offersWrap.innerHTML += '<span style="color:var(--muted);font-size:13px;">нет офферов</span>';
+          div.appendChild(offersWrap);
+
+          const addRow = document.createElement('div');
+          addRow.className = 'add-row';
+          const sel = document.createElement('select');
+          sel.style.cssText = 'flex:1; padding:10px; border-radius:var(--radius-sm); background:rgba(0,0,0,0.35); border:1px solid var(--border); color:var(--text);';
+          offers.forEach(o => {
+            const opt = document.createElement('option');
+            opt.value = o.id;
+            opt.textContent = o.name + '  (#' + o.id + ')';
+            sel.appendChild(opt);
+          });
+          addRow.appendChild(sel);
+          const addBtn = document.createElement('button');
+          addBtn.className = 'btn btn-primary btn-sm';
+          addBtn.textContent = '+ Добавить оффер';
+          addBtn.onclick = async () => {
+            const oid = parseInt(sel.value);
+            const r = await fetch('/api/editor/streams/' + s.id + '/offers/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: oid})});
+            const j = await r.json();
+            if (j.ok) { showToast('Оффер добавлен'); log('add offer ' + oid + ' to stream ' + s.id); document.getElementById('load').click(); }
+            else showToast(j.detail || 'Ошибка', true);
+          };
+          addRow.appendChild(addBtn);
+          div.appendChild(addRow);
+
+          container.appendChild(div);
         });
-        div.appendChild(sel);
-        const addBtn = document.createElement('button');
-        addBtn.textContent = 'Добавить оффер';
-        addBtn.onclick = async () => {
-          const oid = parseInt(document.getElementById('addsel_'+s.id).value);
-          const r = await fetch('/api/editor/streams/' + s.id + '/offers/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: oid})});
-          const j = await r.json();
-          alert(JSON.stringify(j));
-          document.getElementById('load').click();
-        };
-        div.appendChild(addBtn);
-
-        // remove offer select
-        const sel2 = document.createElement('select');
-        sel2.id = 'remsel_' + s.id;
-        (s.offers||[]).forEach(o => {
-          const opt = document.createElement('option');
-          opt.value = o.offer_id;
-          opt.textContent = o.offer_id;
-          sel2.appendChild(opt);
-        });
-        div.appendChild(sel2);
-        const remBtn = document.createElement('button');
-        remBtn.textContent = 'Удалить оффер';
-        remBtn.onclick = async () => {
-          const oid = parseInt(document.getElementById('remsel_'+s.id).value);
-          const r = await fetch('/api/editor/streams/' + s.id + '/offers/remove', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: oid})});
-          const j = await r.json();
-          alert(JSON.stringify(j));
-          document.getElementById('load').click();
-        };
-        div.appendChild(remBtn);
-
-        container.appendChild(div);
-      });
+        log('Загружена кампания #' + cid + ' (' + streams.length + ' потоков)');
+      } catch (e) {
+        showToast('Ошибка: ' + e, true);
+      }
     });
   </script>
 </body>
