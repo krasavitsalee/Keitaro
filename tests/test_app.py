@@ -78,3 +78,18 @@ def test_editor_remove_offer(client, mock_keitaro):
     r = client.post("/api/editor/streams/5/offers/remove", json={"offer_id": 10})
     assert r.status_code == 200
     assert r.json()["ok"] is True
+
+
+def test_creator_duplicate_name(client, mock_keitaro):
+    mock_keitaro.list_campaigns.return_value = [{"id": 1, "name": "dup_name", "state": "active"}]
+    body = {
+        "name": "dup_name",
+        "country_code": "de",
+        "offer_id": 10,
+        "domain_id": 1,
+        "group_id": 2,
+        "traffic_source_id": 3,
+    }
+    r = client.post("/api/creator/create", json=body)
+    assert r.status_code == 400
+    assert "не может повторяться" in r.json()["detail"]

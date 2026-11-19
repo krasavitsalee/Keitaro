@@ -1,7 +1,7 @@
 import re
 import random
 import string
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -60,6 +60,15 @@ def api_offers():
 @router.post("/api/creator/create")
 def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     kt = KeitaroClient()
+    # check for duplicate campaign name
+    try:
+        existing = kt.list_campaigns()
+        if any(c.get("name") == payload.name for c in existing):
+            raise HTTPException(status_code=400, detail="Название кампании не может повторяться")
+    except HTTPException:
+        raise
+    except Exception:
+        pass
     domain_id = payload.domain_id or kt.ensure_domain()
     group_id = payload.group_id or kt.ensure_group()
     ts_id = payload.traffic_source_id or kt.ensure_traffic_source()

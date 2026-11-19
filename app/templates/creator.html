@@ -132,8 +132,12 @@
         const pre = document.getElementById('result');
         pre.style.display = 'block';
         pre.textContent = JSON.stringify(j, null, 2);
-        if (j.ok) showToast('Кампания создана: ' + body.name);
-        else showToast('Ошибка создания', true);
+        if (r.ok && j.ok) {
+          showToast('Кампания создана: ' + body.name);
+        } else {
+          const msg = (j.detail || j.error || 'Ошибка создания');
+          showToast(msg, true);
+        }
       } catch (err) {
         showToast('Ошибка: ' + err, true);
       } finally {
