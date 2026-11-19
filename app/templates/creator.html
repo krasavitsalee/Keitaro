@@ -5,32 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Создаватор кампаний — Keitaro Wrapper</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a href="/" class="logo">
-        <div class="logo-mark">K</div>
-        <span>Keitaro Wrapper</span>
-      </a>
+      <a href="/" class="logo"><div class="logo-mark">K</div><span>Keitaro Wrapper</span></a>
       <div class="topbar-actions">
         <div class="status-dot">Подключено к Keitaro</div>
-        <button class="theme-toggle" title="Тема">◐</button>
       </div>
     </div>
   </header>
 
   <main class="container" style="padding-top: 40px;">
-    <div class="hero" style="padding: 24px 0 32px;">
-      <h1>Создаватор кампаний</h1>
+    <div class="hero">
+      <h1>Создаватор<br><span class="red">кампаний.</span></h1>
       <p>Создайте кампанию с двумя потоками за один клик: страна → Google, остальные → оффер.</p>
     </div>
 
     <div class="form-grid fade-in">
-      <div class="glass form-card">
-        <div class="section-title" style="font-size:20px;">Параметры кампании</div>
+      <div class="form-card">
+        <div class="section-title" style="font-size:28px;">Параметры</div>
         <form id="create-form">
           <div class="field">
             <label>Название кампании</label>
@@ -59,18 +55,18 @@
             <select name="traffic_source_id" id="traffic_source_id"></select>
           </div>
           <button type="submit" class="btn btn-primary" style="width:100%; margin-top:8px;">
-            <span>🚀</span> Создать кампанию
+            Создать кампанию
           </button>
         </form>
         <pre id="result" class="result" style="display:none;"></pre>
       </div>
 
-      <div class="glass preview-panel">
+      <div class="preview-panel">
         <div class="preview-title">Структура кампании</div>
         <div class="flow-scheme">
           <div class="flow-node">
             <div class="flow-head"><span class="flow-icon">🌍</span><span class="flow-name">Поток 1 — Страна</span></div>
-            <div class="flow-desc">Ловит всех из указанной страны (geo-фильтр) и редиректит на Google</div>
+            <div class="flow-desc">Ловит всех из указанной страны (country-фильтр) и редиректит на Google</div>
           </div>
           <div class="flow-arrow">↓</div>
           <div class="neon-line"></div>
@@ -79,8 +75,8 @@
             <div class="flow-desc">Все остальные посетители редиректятся на выбранный оффер</div>
           </div>
         </div>
-        <div style="margin-top: 24px; padding: 16px; background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); border: 1px solid var(--border);">
-          <div style="font-size:12px; color:var(--muted); margin-bottom:6px;">Подсказка</div>
+        <div style="margin-top: 24px; padding: 16px; border:1px solid var(--ivory);">
+          <div style="font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--gray); margin-bottom:6px;">Подсказка</div>
           <div style="font-size:13px; line-height:1.5;">Кампания создаётся в режиме <b>position</b> (последовательная проверка потоков). Домен, группа и источник подтягиваются из Keitaro API.</div>
         </div>
       </div>
@@ -141,7 +137,7 @@
       } catch (err) {
         showToast('Ошибка: ' + err, true);
       } finally {
-        btn.disabled = false; btn.innerHTML = '<span>🚀</span> Создать кампанию';
+        btn.disabled = false; btn.textContent = 'Создать кампанию';
       }
     });
   </script>

@@ -5,42 +5,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Редактор кампаний — Keitaro Wrapper</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="topbar-inner">
-      <a href="/" class="logo">
-        <div class="logo-mark">K</div>
-        <span>Keitaro Wrapper</span>
-      </a>
+      <a href="/" class="logo"><div class="logo-mark">K</div><span>Keitaro Wrapper</span></a>
       <div class="topbar-actions">
         <div class="status-dot">Подключено к Keitaro</div>
-        <button class="theme-toggle" title="Тема">◐</button>
       </div>
     </div>
   </header>
 
   <main class="container" style="padding-top: 32px;">
     <div class="hero" style="padding: 16px 0 24px;">
-      <h1 style="font-size:36px;">Редактор кампаний</h1>
+      <h1 style="font-size:clamp(40px,6vw,72px);">Редактор<br><span class="red">кампаний.</span></h1>
       <p>Добавляйте и удаляйте офферы в потоках существующих кампаний.</p>
     </div>
 
     <div class="editor-layout fade-in">
-      <div class="glass campaign-list">
+      <div class="campaign-list">
         <input class="search-box" id="search" placeholder="Поиск кампании…">
         <div id="campaigns"></div>
       </div>
 
       <div>
-        <div class="glass" style="padding:20px; margin-bottom:16px; display:flex; gap:12px; align-items:center;">
-          <select id="campaign" style="flex:1; padding:12px; border-radius:var(--radius-sm); background:rgba(0,0,0,0.35); border:1px solid var(--border); color:var(--text);"></select>
+        <div style="padding:20px; border:1px solid var(--ivory); border-bottom:none; background:var(--ivory); color:var(--black); display:flex; gap:12px; align-items:center;">
+          <select id="campaign" style="flex:1; padding:12px; border:1px solid var(--black); background:var(--bg); color:var(--ivory); font-size:13px;"></select>
           <button id="load" class="btn btn-primary">Загрузить</button>
         </div>
         <div id="streams"></div>
-        <div class="glass log-box">
+        <div class="log-box">
           <div class="preview-title">Лог изменений</div>
           <div id="log"></div>
         </div>
@@ -111,7 +107,7 @@
         container.innerHTML = '';
         streams.forEach(s => {
           const div = document.createElement('div');
-          div.className = 'glass stream-card fade-in';
+          div.className = 'stream-card fade-in';
           const title = document.createElement('div');
           title.className = 'stream-head';
           title.innerHTML = '<span class="stream-name">' + (s.name || 'Stream') + '</span><span class="badge ' + (s.state === 'active' ? 'badge-active' : 'badge-disabled') + '">' + s.state + '</span>';
@@ -123,7 +119,7 @@
           div.appendChild(meta);
 
           const offersWrap = document.createElement('div');
-          offersWrap.innerHTML = '<b style="font-size:13px;color:var(--muted);">Офферы:</b> ';
+          offersWrap.innerHTML = '<b style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gray);">Офферы:</b> ';
           (s.offers || []).forEach(o => {
             const chip = document.createElement('span');
             chip.className = 'offer-chip';
@@ -136,13 +132,12 @@
             };
             offersWrap.appendChild(chip);
           });
-          if (!(s.offers||[]).length) offersWrap.innerHTML += '<span style="color:var(--muted);font-size:13px;">нет офферов</span>';
+          if (!(s.offers||[]).length) offersWrap.innerHTML += '<span style="color:var(--gray);font-size:12px;">нет офферов</span>';
           div.appendChild(offersWrap);
 
           const addRow = document.createElement('div');
           addRow.className = 'add-row';
           const sel = document.createElement('select');
-          sel.style.cssText = 'flex:1; padding:10px; border-radius:var(--radius-sm); background:rgba(0,0,0,0.35); border:1px solid var(--border); color:var(--text);';
           offers.forEach(o => {
             const opt = document.createElement('option');
             opt.value = o.id;
