@@ -303,6 +303,11 @@
           o.textContent = c.name + '  (#' + c.id + ')';
           sel.appendChild(o);
         });
+        const last = localStorage.getItem('last_campaign');
+        if (last && allCampaigns.some(c => String(c.id) === String(last))) {
+          sel.value = last;
+          setTimeout(() => document.getElementById('load').click(), 100);
+        }
       } catch (e) { showToast('Ошибка загрузки кампаний: ' + e, true); }
     }
     function renderCampaigns(list) {
@@ -354,6 +359,7 @@
       const cid = document.getElementById('campaign').value;
       if (!cid) return;
       try {
+        localStorage.setItem('last_campaign', cid);
         const streams = await (await fetch('/api/editor/campaigns/' + cid + '/streams')).json();
         const container = document.getElementById('streams');
         container.innerHTML = '';
