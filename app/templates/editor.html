@@ -202,17 +202,19 @@
             dropdown.innerHTML = '';
             let count = 0;
             list.forEach(o => {
-              if (used.has(o.id)) return;
+              const isUsed = used.has(o.id);
               const item = document.createElement('div');
-              item.style.cssText = 'padding:10px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--gray-2);';
-              item.textContent = o.name + '  (#' + o.id + ')';
-              item.addEventListener('mouseenter', () => { item.style.background = 'var(--red)'; item.style.color = 'var(--ivory)'; });
-              item.addEventListener('mouseleave', () => { item.style.background = ''; item.style.color = ''; });
-              item.addEventListener('click', () => {
-                selectedOfferId = o.id;
-                searchInput.value = o.name + '  (#' + o.id + ')';
-                dropdown.style.display = 'none';
-              });
+              item.style.cssText = 'padding:10px 12px; cursor:' + (isUsed ? 'not-allowed' : 'pointer') + '; font-size:13px; border-bottom:1px solid var(--gray-2); opacity:' + (isUsed ? '0.45' : '1') + ';';
+              item.textContent = o.name + '  (#' + o.id + ')' + (isUsed ? '  — уже в потоке' : '');
+              if (!isUsed) {
+                item.addEventListener('mouseenter', () => { item.style.background = 'var(--red)'; item.style.color = 'var(--ivory)'; });
+                item.addEventListener('mouseleave', () => { item.style.background = ''; item.style.color = ''; });
+                item.addEventListener('click', () => {
+                  selectedOfferId = o.id;
+                  searchInput.value = o.name + '  (#' + o.id + ')';
+                  dropdown.style.display = 'none';
+                });
+              }
               dropdown.appendChild(item);
               count++;
             });
