@@ -10,6 +10,15 @@
   --gray-2:#3a3a3a;
   --white:#ffffff;
   --radius:0px;
+  /* compatibility aliases */
+  --blue:var(--red);
+  --emerald:var(--red);
+  --amber:var(--gray);
+  --purple:var(--gray-2);
+  --muted:var(--gray);
+  --glass:var(--ivory);
+  --glass-2:var(--bg-2);
+  --border:var(--ivory);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%}

@@ -36,12 +36,21 @@ def _stream_update_payload(stream: dict, new_offers: list) -> dict:
             "state": o.get("state", "active") if isinstance(o, dict) else "active",
         })
 
+    action_type = stream.get("action_type") or "http"
+    schema = stream.get("schema")
+    if schema is None:
+        if stream.get("offers"):
+            schema = "landings"
+        elif stream.get("action_payload"):
+            schema = "redirect"
+        else:
+            schema = "action"
     payload = {
         "campaign_id": stream.get("campaign_id"),
         "type": stream.get("type", "regular"),
         "name": stream.get("name"),
-        "action_type": stream.get("action_type"),
-        "schema": stream.get("schema"),
+        "action_type": action_type,
+        "schema": schema,
         "state": stream.get("state", "active"),
         "position": stream.get("position"),
         "weight": stream.get("weight"),

@@ -154,8 +154,10 @@ class KeitaroClient:
 
     def ensure_traffic_source(self) -> Optional[int]:
         sources = self.list_traffic_sources()
-        if sources:
-            return sources[0]["id"]
+        active = [s for s in sources if s.get("state") in (None, "active")]
+        pool = active or sources
+        if pool:
+            return pool[0]["id"]
         return None
 
 

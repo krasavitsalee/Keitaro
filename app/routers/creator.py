@@ -59,6 +59,7 @@ def api_offers():
 
 @router.post("/api/creator/create")
 def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
+    payload.country_code = payload.country_code.upper().strip()
     kt = KeitaroClient()
     # check for duplicate campaign name
     try:
@@ -72,6 +73,10 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     domain_id = payload.domain_id or kt.ensure_domain()
     group_id = payload.group_id or kt.ensure_group()
     ts_id = payload.traffic_source_id or kt.ensure_traffic_source()
+    if domain_id is None:
+        raise HTTPException(status_code=400, detail="В Keitaro нет доступных доменов")
+    if ts_id is None:
+        raise HTTPException(status_code=400, detail="В Keitaro нет доступных источников трафика")
 
     alias = slugify(payload.name) + "-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=6))
     try:
