@@ -99,7 +99,7 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     landing_action = kt.pick_landing_action() or "show_landing_page"
     kt.create_stream({
         "campaign_id": cid,
-        "type": "regular",
+        "type": "default",
         "name": "Offer",
         "action_type": landing_action,
         "schema": "landings",
