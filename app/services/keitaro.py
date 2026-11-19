@@ -52,8 +52,13 @@ class KeitaroClient:
         return self._request("POST", "/streams", json=data)
 
     def update_stream(self, stream_id: int, data: Dict) -> Dict:
-        # Keitaro uses POST for stream updates
-        return self._request("POST", f"/streams/{stream_id}", json=data)
+        # Keitaro uses PUT for stream updates (POST on some versions)
+        try:
+            return self._request("PUT", f"/streams/{stream_id}", json=data)
+        except RuntimeError as e:
+            if "404" in str(e) or "405" in str(e):
+                return self._request("POST", f"/streams/{stream_id}", json=data)
+            raise
 
     def delete_stream(self, stream_id: int) -> Any:
         return self._request("DELETE", f"/streams/{stream_id}")

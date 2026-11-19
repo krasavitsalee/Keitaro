@@ -87,7 +87,7 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
         "action_payload": "https://www.google.com",
         "position": 1,
         "state": "active",
-        "filters": [{"name": "geo", "mode": "accept", "payload": [payload.country_code]}],
+        "filters": [{"name": "country", "mode": "accept", "payload": [payload.country_code]}],
     })
 
     # Stream 2: offer
