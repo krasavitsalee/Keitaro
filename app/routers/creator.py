@@ -12,6 +12,34 @@ from app.database import get_db
 from app.models.db import CampaignRecord
 from app.services.keitaro import KeitaroClient
 
+_VALID_COUNTRIES = {
+    "AD","AE","AF","AG","AI","AL","AM","AO","AQ","AR","AS","AT","AU","AW","AX","AZ",
+    "BA","BB","BD","BE","BF","BG","BH","BI","BJ","BL","BM","BN","BO","BQ","BR","BS","BT","BV","BW","BY","BZ",
+    "CA","CC","CD","CF","CG","CH","CI","CK","CL","CM","CN","CO","CR","CU","CV","CW","CX","CY","CZ",
+    "DE","DJ","DK","DM","DO","DZ",
+    "EC","EE","EG","EH","ER","ES","ET",
+    "FI","FJ","FK","FM","FO","FR",
+    "GA","GB","GD","GE","GF","GG","GH","GI","GL","GM","GN","GP","GQ","GR","GS","GT","GU","GW","GY",
+    "HK","HM","HN","HR","HT","HU",
+    "ID","IE","IL","IM","IN","IO","IQ","IR","IS","IT",
+    "JE","JM","JO","JP",
+    "KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ",
+    "LA","LB","LC","LI","LK","LR","LS","LT","LU","LV","LY",
+    "MA","MC","MD","ME","MF","MG","MH","MK","ML","MM","MN","MO","MP","MQ","MR","MS","MT","MU","MV","MW","MX","MY","MZ",
+    "NA","NC","NE","NF","NG","NI","NL","NO","NP","NR","NU","NZ",
+    "OM",
+    "PA","PE","PF","PG","PH","PK","PL","PM","PN","PR","PS","PT","PW","PY",
+    "QA",
+    "RE","RO","RS","RU","RW",
+    "SA","SB","SC","SD","SE","SG","SH","SI","SJ","SK","SL","SM","SN","SO","SR","SS","ST","SV","SX","SY","SZ",
+    "TC","TD","TF","TG","TH","TJ","TK","TL","TM","TN","TO","TR","TT","TV","TW","TZ",
+    "UA","UG","UM","US","UY","UZ",
+    "VA","VC","VE","VG","VI","VN","VU",
+    "WF","WS",
+    "YE","YT",
+    "ZA","ZM","ZW",
+}
+
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
@@ -60,6 +88,8 @@ def api_offers():
 @router.post("/api/creator/create")
 def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     payload.country_code = payload.country_code.upper().strip()
+    if len(payload.country_code) != 2 or payload.country_code not in _VALID_COUNTRIES:
+        raise HTTPException(status_code=400, detail="Неверный код страны. Используйте ISO-код, например DE, US, RU")
     kt = KeitaroClient()
     # check for duplicate campaign name
     try:
@@ -117,7 +147,10 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
         kt.create_stream(stream1_payload)
     except RuntimeError:
         stream1_payload["filters"] = [{"name": "geo", "mode": "accept", "payload": [payload.country_code]}]
-        kt.create_stream(stream1_payload)
+        try:
+            kt.create_stream(stream1_payload)
+        except RuntimeError as e:
+            raise HTTPException(status_code=400, detail="Ошибка создания потока: " + str(e))
 
     # Stream 2: offer
     landing_action = kt.pick_landing_action() or "show_landing_page"
