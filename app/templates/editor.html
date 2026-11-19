@@ -82,6 +82,19 @@
     }
 
     function getSt(sid) { return streamStates[sid]; }
+    function dedupeOffers(st) {
+      const seen = new Set();
+      const result = [];
+      // active first
+      const active = st.offers.filter(o => o.status === 'active');
+      const archived = st.offers.filter(o => o.status !== 'active');
+      [...active, ...archived].forEach(o => {
+        if (seen.has(o.offer_id)) return;
+        seen.add(o.offer_id);
+        result.push(o);
+      });
+      st.offers = result;
+    }
     function archiveKey(sid) { return 'archived_offers_' + sid; }
     function loadArchive(sid) { try { return JSON.parse(localStorage.getItem(archiveKey(sid)) || '[]'); } catch(e){ return []; } }
     function saveArchive(sid, archived) { try { localStorage.setItem(archiveKey(sid), JSON.stringify(archived)); } catch(e) {} }
@@ -376,6 +389,7 @@
           st.offers.push({ offer_id: a.offer_id, name: a.name || ('Offer #' + a.offer_id), weight: 0, pinned: false, status: 'archived', pending: false });
         }
       });
+      dedupeOffers(st);
       return stream;
     }
 
@@ -466,6 +480,15 @@
       try {
         const stream = await (await fetch('/api/editor/streams/' + streamId)).json();
         const keitaroIds = new Set((stream.offers || []).map(o => o.offer_id));
+        // If an offer is active in Keitaro, mark any local archived copy as active (no duplicate)
+        (stream.offers || []).forEach(ko => {
+          const existing = st.offers.find(o => o.offer_id === ko.offer_id);
+          if (existing) {
+            existing.status = 'active';
+            existing.weight = ko.share;
+            existing.pending = false;
+          }
+        });
         st.offers.forEach(o => {
           if (o.status === 'active' && !keitaroIds.has(o.offer_id)) {
             o.status = 'archived'; o.pending = false;
@@ -475,11 +498,9 @@
           if (!st.offers.find(o => o.offer_id === ko.offer_id)) {
             const off = allOffers.find(o => o.id === ko.offer_id);
             st.offers.push({ offer_id: ko.offer_id, name: off ? off.name : ('Offer #' + ko.offer_id), weight: ko.share, pinned: false, status: 'active', pending: false });
-          } else {
-            const o = st.offers.find(x => x.offer_id === ko.offer_id && x.status === 'active');
-            if (o) o.weight = ko.share;
           }
         });
+        dedupeOffers(st);
         const archivedNow = st.offers.filter(o => o.status === 'archived').map(x => ({ offer_id: x.offer_id, name: x.name, weight: x.weight }));
         saveArchive(streamId, archivedNow);
         st.dirty = false;
@@ -509,6 +530,7 @@
           archived.forEach(a => {
             if (!st2.offers.find(o => o.offer_id === a.offer_id)) st2.offers.push({ ...a, pending: false });
           });
+          dedupeOffers(st2);
           const archivedNow = st2.offers.filter(o => o.status === 'archived').map(x => ({ offer_id: x.offer_id, name: x.name, weight: x.weight }));
           saveArchive(streamId, archivedNow);
           st2.dirty = false;
