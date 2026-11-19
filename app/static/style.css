@@ -1,0 +1,4 @@
+body { font-family: sans-serif; margin: 20px; }
+form label { display: block; margin: 8px 0; }
+.stream { border: 1px solid #ccc; padding: 12px; margin: 12px 0; border-radius: 6px; }
+button { margin: 4px; }

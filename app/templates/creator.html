@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Создаватор кампаний Keitaro</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <h1>Создаватор кампаний</h1>
+  <form id="create-form">
+    <label>Название кампании: <input name="name" required></label><br>
+    <label>Гео-код страны: <input name="country_code" required placeholder="DE"></label><br>
+    <label>ID оффера: <input name="offer_id" type="number" required></label><br>
+    <label>Домен: <select name="domain_id" id="domain_id"></select></label><br>
+    <label>Группа: <select name="group_id" id="group_id"></select></label><br>
+    <label>Источник: <select name="traffic_source_id" id="traffic_source_id"></select></label><br>
+    <button type="submit">Создать кампанию</button>
+  </form>
+  <pre id="result"></pre>
+  <script>
+    async function loadOpts() {
+      const domains = await (await fetch('/api/keitaro/domains')).json();
+      const groups = await (await fetch('/api/keitaro/groups')).json();
+      const sources = await (await fetch('/api/keitaro/sources')).json();
+      const fill = (id, items, labelKey='name') => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = '';
+        items.forEach(it => {
+          const o = document.createElement('option');
+          o.value = it.id;
+          o.textContent = (it.name || it.id) + ' (id ' + it.id + ')';
+          sel.appendChild(o);
+        });
+      };
+      fill('domain_id', domains);
+      fill('group_id', groups);
+      fill('traffic_source_id', sources);
+    }
+    loadOpts();
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(e.target);
+      const body = {
+        name: fd.get('name'),
+        country_code: fd.get('country_code'),
+        offer_id: parseInt(fd.get('offer_id')),
+        domain_id: parseInt(fd.get('domain_id')),
+        group_id: parseInt(fd.get('group_id')),
+        traffic_source_id: parseInt(fd.get('traffic_source_id')),
+      };
+      const r = await fetch('/api/creator/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
+      const j = await r.json();
+      document.getElementById('result').textContent = JSON.stringify(j, null, 2);
+    });
+  </script>
+</body>
+</html>
