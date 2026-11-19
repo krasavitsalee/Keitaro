@@ -121,10 +121,9 @@ class KeitaroClient:
 
     def ensure_group(self, name: str = "test_group", type_: str = "campaigns") -> int:
         groups = self.list_groups(type_)
-        for g in groups:
-            if g.get("name") == name:
-                return g["id"]
-        # create
+        if groups:
+            # reuse an existing group instead of creating a new one
+            return groups[0]["id"]
         created = self.create_group({"name": name, "position": 1, "type": type_})
         return created["id"]
 
