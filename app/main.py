@@ -27,6 +27,7 @@ def index():
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/style.css"></head>
 <body>
+<div class="grain-overlay"></div>
 <header class="topbar"><div class="topbar-inner">
   <a href="/" class="logo"><div class="logo-mark">K</div><span>Keitaro Wrapper</span></a>
   <div class="topbar-actions">
