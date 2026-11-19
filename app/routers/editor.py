@@ -124,8 +124,11 @@ def add_offer(stream_id: int, payload: OfferActionIn, db: Session = Depends(get_
 def remove_offer(stream_id: int, payload: OfferActionIn, db: Session = Depends(get_db)):
     kt = KeitaroClient()
     stream = kt.get_stream(stream_id)
-    offers = [o for o in (stream.get("offers") or []) if o.get("offer_id") != payload.offer_id]
-    if len(offers) == len(stream.get("offers") or []):
+    current_offers = stream.get("offers") or []
+    if not current_offers:
+        raise HTTPException(status_code=400, detail="В потоке нет офферов")
+    offers = [o for o in current_offers if o.get("offer_id") != payload.offer_id]
+    if len(offers) == len(current_offers):
         raise HTTPException(status_code=400, detail="Offer not found on this stream")
     new_payload = _stream_update_payload(stream, offers)
     updated = kt.update_stream(stream_id, new_payload)

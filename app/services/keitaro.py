@@ -22,8 +22,15 @@ class KeitaroClient:
 
     def _request(self, method: str, path: str, **kwargs) -> Any:
         url = f"{self.admin_base}{path}"
-        with httpx.Client(timeout=30.0) as client:
-            resp = client.request(method, url, headers=self._headers(), **kwargs)
+        try:
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.request(method, url, headers=self._headers(), **kwargs)
+        except httpx.ConnectError as e:
+            raise RuntimeError(f"Keitaro API {method} {path} -> connection error: {e}")
+        except httpx.TimeoutException as e:
+            raise RuntimeError(f"Keitaro API {method} {path} -> timeout: {e}")
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"Keitaro API {method} {path} -> http error: {e}")
         if resp.status_code not in (200, 201):
             raise RuntimeError(f"Keitaro API {method} {path} -> {resp.status_code}: {resp.text}")
         try:

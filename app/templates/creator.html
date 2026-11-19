@@ -145,6 +145,8 @@
       e.preventDefault();
       const fd = new FormData(e.target);
       const btn = e.target.querySelector('button[type=submit]');
+      const pre = document.getElementById('result');
+      pre.style.display = 'none';
       btn.disabled = true; btn.textContent = 'Создаём…';
       const body = {
         name: fd.get('name'),
@@ -157,7 +159,6 @@
       try {
         const r = await fetch('/api/creator/create', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)});
         const j = await r.json();
-        const pre = document.getElementById('result');
         pre.style.display = 'block';
         pre.textContent = JSON.stringify(j, null, 2);
         if (r.ok && j.ok) {
