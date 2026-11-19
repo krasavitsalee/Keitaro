@@ -84,13 +84,19 @@
     function getSt(sid) { return streamStates[sid]; }
     function archiveKey(sid) { return 'archived_offers_' + sid; }
     function loadArchive(sid) { try { return JSON.parse(localStorage.getItem(archiveKey(sid)) || '[]'); } catch(e){ return []; } }
-    function saveArchive(sid, archived) { localStorage.setItem(archiveKey(sid), JSON.stringify(archived)); }
+    function saveArchive(sid, archived) { try { localStorage.setItem(archiveKey(sid), JSON.stringify(archived)); } catch(e) {} }
 
     function recalcWeights(st) {
       const active = st.offers.filter(o => o.status === 'active');
       const pinned = active.filter(o => o.pinned);
       const unpinned = active.filter(o => !o.pinned);
-      const pinnedSum = pinned.reduce((s,o) => s + (o.weight||0), 0);
+      let pinnedSum = pinned.reduce((s,o) => s + (o.weight||0), 0);
+      if (pinnedSum > 100) {
+        // clamp pinned weights proportionally
+        const scale = 100 / pinnedSum;
+        pinned.forEach(o => { o.weight = Math.round(o.weight * scale); });
+        pinnedSum = pinned.reduce((s,o) => s + (o.weight||0), 0);
+      }
       let remaining = 100 - pinnedSum;
       if (remaining < 0) remaining = 0;
       if (unpinned.length > 0) {
@@ -236,9 +242,17 @@
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => renderDropdown(e.target.value), 300);
       });
-      document.addEventListener('click', (e) => {
-        if (!comboWrap.contains(e.target)) dropdown.style.display = 'none';
-      });
+      // close dropdowns when clicking outside (single handler, registered once)
+      if (!window._dropdownCloseRegistered) {
+        window._dropdownCloseRegistered = true;
+        document.addEventListener('click', (e) => {
+          document.querySelectorAll('.offer-combo-dropdown').forEach(d => {
+            const wrap = d.parentElement;
+            if (wrap && !wrap.contains(e.target)) d.style.display = 'none';
+          });
+        });
+      }
+      dropdown.classList.add('offer-combo-dropdown');
 
       addRow.appendChild(comboWrap);
 
@@ -337,7 +351,13 @@
     })();
 
     async function loadStreamState(streamId) {
-      const stream = await (await fetch('/api/editor/streams/' + streamId)).json();
+      let stream;
+      try {
+        stream = await (await fetch('/api/editor/streams/' + streamId)).json();
+      } catch (e) {
+        showToast('Ошибка загрузки потока ' + streamId + ': ' + e, true);
+        return null;
+      }
       const keitaroActive = stream.offers || [];
       streamStates[streamId] = { offers: [], dirty: false };
       const st = streamStates[streamId];
@@ -365,7 +385,8 @@
         container.innerHTML = '';
         window._streams = streams;
         for (const s of streams) {
-          await loadStreamState(s.id);
+          const st = await loadStreamState(s.id);
+          if (!st) continue;
           const card = renderStreamCard(s);
           card.id = 'card-' + s.id;
           container.appendChild(card);
@@ -426,7 +447,8 @@
     }
 
     function renderStreamById(sid) {
-      const stream = window._streams.find(s => s.id === sid);
+      const streams = window._streams || [];
+      const stream = streams.find(s => s.id === sid);
       const card = document.getElementById('card-' + sid);
       if (!card || !stream) return;
       const newCard = renderStreamCard(stream);
