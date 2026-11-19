@@ -126,3 +126,25 @@ def remove_offer(stream_id: int, payload: OfferActionIn, db: Session = Depends(g
     db.add(log)
     db.commit()
     return {"ok": True, "stream": updated}
+
+
+class ApplyOffersIn(BaseModel):
+    offers: list
+
+
+@router.post("/api/editor/streams/{stream_id}/offers/apply")
+def apply_offers(stream_id: int, payload: ApplyOffersIn, db: Session = Depends(get_db)):
+    kt = KeitaroClient()
+    stream = kt.get_stream(stream_id)
+    # payload.offers: list of {offer_id, share}
+    new_offers = []
+    for o in payload.offers:
+        new_offers.append({"offer_id": o.get("offer_id"), "share": o.get("share", 100), "state": "active"})
+    new_payload = _stream_update_payload(stream, new_offers)
+    updated = kt.update_stream(stream_id, new_payload)
+    for o in new_offers:
+        log = OfferChangeLog(campaign_id=stream.get("campaign_id"), stream_id=stream_id,
+                             offer_id=o.get("offer_id"), action="apply")
+        db.add(log)
+    db.commit()
+    return {"ok": True, "stream": updated}

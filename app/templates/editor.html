@@ -7,6 +7,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .offer-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .offer-table th, .offer-table td { padding: 10px 8px; border-bottom: 1px solid var(--border); font-size: 13px; text-align: left; vertical-align: middle; }
+    .offer-table th { font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--gray); font-weight: 700; }
+    .offer-table tr.archived { opacity: 0.45; background: rgba(0,0,0,0.08); }
+    .offer-table input.weight-input { width: 64px; padding: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--ivory); font-family: 'JetBrains Mono', monospace; }
+    .pin-btn { cursor: pointer; background: none; border: none; font-size: 16px; color: var(--gray); }
+    .pin-btn.pinned { color: var(--red); }
+    .status-archived { color: var(--gray); font-style: italic; }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -21,7 +31,7 @@
   <main class="container" style="padding-top: 32px;">
     <div class="hero" style="padding: 16px 0 24px;">
       <h1 style="font-size:clamp(40px,6vw,72px);">Редактор<br><span class="red">кампаний.</span></h1>
-      <p>Добавляйте и удаляйте офферы в потоках существующих кампаний.</p>
+      <p>Добавляйте, удаляйте и распределяйте веса офферов. Изменения применяются по кнопке.</p>
     </div>
 
     <div class="editor-layout fade-in">
@@ -47,6 +57,10 @@
   <div id="toast" class="toast"></div>
 
   <script>
+    let allCampaigns = [];
+    let allOffers = [];
+    let streamStates = {}; // streamId -> {offers:[], dirty:bool}
+
     function showToast(msg, err=false) {
       const t = document.getElementById('toast');
       t.textContent = msg;
@@ -60,7 +74,140 @@
       e.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
       d.prepend(e);
     }
-    let allCampaigns = [];
+
+    function getSt(sid) { return streamStates[sid]; }
+
+    function recalcWeights(st) {
+      const active = st.offers.filter(o => o.status === 'active');
+      const pinned = active.filter(o => o.pinned);
+      const unpinned = active.filter(o => !o.pinned);
+      const pinnedSum = pinned.reduce((s,o) => s + (o.weight||0), 0);
+      let remaining = 100 - pinnedSum;
+      if (remaining < 0) remaining = 0;
+      if (unpinned.length > 0) {
+        const base = Math.floor(remaining / unpinned.length);
+        let leftover = remaining - base * unpinned.length;
+        unpinned.forEach((o, i) => { o.weight = base + (i < leftover ? 1 : 0); });
+      }
+      st.offers.filter(o => o.status === 'archived').forEach(o => { o.weight = 0; });
+    }
+
+    function sortOffers(list) {
+      const active = list.filter(o => o.status === 'active').sort((a,b) => b.weight - a.weight);
+      const archived = list.filter(o => o.status === 'archived').sort((a,b) => a.offer_id - b.offer_id);
+      return active.concat(archived);
+    }
+
+    function renderStreamCard(stream) {
+      const st = streamStates[stream.id];
+      const div = document.createElement('div');
+      div.className = 'stream-card fade-in';
+      const title = document.createElement('div');
+      title.className = 'stream-head';
+      title.innerHTML = '<span class="stream-name">' + (stream.name || 'Stream') + '</span><span class="badge ' + (stream.state === 'active' ? 'badge-active' : 'badge-disabled') + '">' + stream.state + '</span>';
+      div.appendChild(title);
+
+      const meta = document.createElement('div');
+      meta.className = 'stream-meta';
+      meta.innerHTML = '<span>id: ' + stream.id + '</span><span>type: ' + stream.type + '</span><span>schema: ' + stream.schema + '</span><span>pos: ' + stream.position + '</span>';
+      div.appendChild(meta);
+
+      const table = document.createElement('table');
+      table.className = 'offer-table';
+      table.innerHTML = '<thead><tr><th>Оффер</th><th>Вес %</th><th>Закрепить</th><th>Статус</th><th>Действие</th></tr></thead>';
+      const tbody = document.createElement('tbody');
+      sortOffers(st.offers).forEach(o => {
+        const tr = document.createElement('tr');
+        if (o.status === 'archived') tr.className = 'archived';
+        tr.innerHTML = `
+          <td>${o.name} (#${o.offer_id})</td>
+          <td><input type="number" class="weight-input" value="${o.weight}" ${o.status==='archived'?'disabled':''} data-oid="${o.offer_id}"></td>
+          <td><button class="pin-btn ${o.pinned?'pinned':''}" data-oid="${o.offer_id}" ${o.status==='archived'?'disabled':''}>${o.pinned?'📌':'📍'}</button></td>
+          <td class="${o.status==='archived'?'status-archived':''}">${o.status === 'active' ? 'активен' : 'в архиве'}</td>
+          <td></td>
+        `;
+        const actionCell = tr.querySelector('td:last-child');
+        if (o.status === 'active') {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-danger btn-sm';
+          btn.textContent = 'Удалить';
+          btn.onclick = () => { removeOffer(stream.id, o.offer_id); };
+          actionCell.appendChild(btn);
+        } else {
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-ghost btn-sm';
+          btn.textContent = 'Вернуть';
+          btn.onclick = () => { restoreOffer(stream.id, o.offer_id); };
+          actionCell.appendChild(btn);
+        }
+        const wInput = tr.querySelector('.weight-input');
+        wInput.addEventListener('change', (e) => {
+          const val = parseInt(e.target.value);
+          if (isNaN(val) || val < 0) return;
+          const oo = st.offers.find(x => x.offer_id === o.offer_id);
+          if (oo) { oo.weight = val; oo.pinned = true; st.dirty = true; recalcWeights(st); renderStreamById(stream.id); updateButtons(stream.id); }
+        });
+        const pinBtn = tr.querySelector('.pin-btn');
+        pinBtn.addEventListener('click', () => { togglePin(stream.id, o.offer_id); });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      div.appendChild(table);
+
+      // add row
+      const addRow = document.createElement('div');
+      addRow.className = 'add-row';
+      const sel = document.createElement('select');
+      const used = new Set(st.offers.map(o => o.offer_id));
+      allOffers.forEach(o => {
+        if (used.has(o.id)) return;
+        const opt = document.createElement('option');
+        opt.value = o.id;
+        opt.textContent = o.name + '  (#' + o.id + ')';
+        sel.appendChild(opt);
+      });
+      addRow.appendChild(sel);
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn btn-primary btn-sm';
+      addBtn.textContent = '+ Добавить оффер';
+      if (!sel.options.length) { addBtn.disabled = true; }
+      addBtn.onclick = () => {
+        const oid = parseInt(sel.value);
+        if (isNaN(oid)) { showToast('Нет доступных офферов', true); return; }
+        addOffer(stream.id, oid);
+      };
+      addRow.appendChild(addBtn);
+      div.appendChild(addRow);
+
+      // buttons
+      const btnRow = document.createElement('div');
+      btnRow.style.marginTop = '16px';
+      const syncBtn = document.createElement('button');
+      syncBtn.className = 'btn btn-ghost btn-sm';
+      syncBtn.id = 'sync-btn-' + stream.id;
+      syncBtn.textContent = st.dirty ? 'Подтвердить изменения' : 'Проверить изменения с Keitaro';
+      syncBtn.onclick = () => st.dirty ? confirmChanges(stream.id) : syncWithKeitaro(stream.id);
+      btnRow.appendChild(syncBtn);
+      div.appendChild(btnRow);
+
+      return div;
+    }
+
+    function renderStreamById(sid) {
+      const card = document.getElementById('card-' + sid);
+      if (!card) return;
+      const stream = window._streams.find(s => s.id === sid);
+      const newCard = renderStreamCard(stream);
+      newCard.id = 'card-' + sid;
+      card.replaceWith(newCard);
+    }
+
+    function updateButtons(sid) {
+      const st = getSt(sid);
+      const btn = document.getElementById('sync-btn-' + sid);
+      if (btn) btn.textContent = st.dirty ? 'Подтвердить изменения' : 'Проверить изменения с Keitaro';
+    }
+
     async function loadCampaigns() {
       try {
         allCampaigns = await (await fetch('/api/editor/campaigns')).json();
@@ -96,77 +243,152 @@
       renderCampaigns(allCampaigns.filter(c => c.name.toLowerCase().includes(q)));
     });
     loadCampaigns();
+    (async () => {
+      try { allOffers = await (await fetch('/api/editor/offers')).json(); }
+      catch (e) { showToast('Ошибка загрузки офферов: ' + e, true); }
+    })();
 
-    document.getElementById('load').addEventListener('click', async () => {
+    async function loadStreamState(streamId) {
+      const stream = await (await fetch('/api/editor/streams/' + streamId)).json();
+      const keitaroActive = stream.offers || [];
+      streamStates[streamId] = { offers: [], dirty: false };
+      const st = streamStates[streamId];
+      st.offers = keitaroActive.map(ko => {
+        const off = allOffers.find(o => o.id === ko.offer_id);
+        return { offer_id: ko.offer_id, name: off ? off.name : ('Offer #' + ko.offer_id), weight: ko.share, pinned: false, status: 'active', pending: false };
+      });
+      return stream;
+    }
+
+    async function loadStreams() {
       const cid = document.getElementById('campaign').value;
       if (!cid) return;
       try {
         const streams = await (await fetch('/api/editor/campaigns/' + cid + '/streams')).json();
-        const offers = await (await fetch('/api/editor/offers')).json();
         const container = document.getElementById('streams');
         container.innerHTML = '';
-        streams.forEach(s => {
-          const div = document.createElement('div');
-          div.className = 'stream-card fade-in';
-          const title = document.createElement('div');
-          title.className = 'stream-head';
-          title.innerHTML = '<span class="stream-name">' + (s.name || 'Stream') + '</span><span class="badge ' + (s.state === 'active' ? 'badge-active' : 'badge-disabled') + '">' + s.state + '</span>';
-          div.appendChild(title);
-
-          const meta = document.createElement('div');
-          meta.className = 'stream-meta';
-          meta.innerHTML = '<span>id: ' + s.id + '</span><span>type: ' + s.type + '</span><span>schema: ' + s.schema + '</span><span>pos: ' + s.position + '</span>';
-          div.appendChild(meta);
-
-          const offersWrap = document.createElement('div');
-          offersWrap.innerHTML = '<b style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--gray);">Офферы:</b> ';
-          (s.offers || []).forEach(o => {
-            const chip = document.createElement('span');
-            chip.className = 'offer-chip';
-            chip.innerHTML = 'offer #' + o.offer_id + '<span class="remove" data-oid="' + o.offer_id + '">✕</span>';
-            chip.querySelector('.remove').onclick = async () => {
-              const r = await fetch('/api/editor/streams/' + s.id + '/offers/remove', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: o.offer_id})});
-              const j = await r.json();
-              if (j.ok) { showToast('Оффер удалён'); log('remove offer ' + o.offer_id + ' from stream ' + s.id); document.getElementById('load').click(); }
-              else showToast(j.detail || 'Ошибка', true);
-            };
-            offersWrap.appendChild(chip);
-          });
-          if (!(s.offers||[]).length) offersWrap.innerHTML += '<span style="color:var(--gray);font-size:12px;">нет офферов</span>';
-          div.appendChild(offersWrap);
-
-          const addRow = document.createElement('div');
-          addRow.className = 'add-row';
-          const sel = document.createElement('select');
-          offers.forEach(o => {
-            const opt = document.createElement('option');
-            opt.value = o.id;
-            opt.textContent = o.name + '  (#' + o.id + ')';
-            sel.appendChild(opt);
-          });
-          addRow.appendChild(sel);
-          const addBtn = document.createElement('button');
-          addBtn.className = 'btn btn-primary btn-sm';
-          addBtn.textContent = '+ Добавить оффер';
-          if (!offers.length) { addBtn.disabled = true; addBtn.title = 'Нет доступных офферов'; }
-          addBtn.onclick = async () => {
-            const oid = parseInt(sel.value);
-            if (isNaN(oid)) { showToast('Нет доступных офферов', true); return; }
-            const r = await fetch('/api/editor/streams/' + s.id + '/offers/add', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({offer_id: oid})});
-            const j = await r.json();
-            if (j.ok) { showToast('Оффер добавлен'); log('add offer ' + oid + ' to stream ' + s.id); document.getElementById('load').click(); }
-            else showToast(j.detail || 'Ошибка', true);
-          };
-          addRow.appendChild(addBtn);
-          div.appendChild(addRow);
-
-          container.appendChild(div);
-        });
+        window._streams = streams;
+        for (const s of streams) {
+          await loadStreamState(s.id);
+          const card = renderStreamCard(s);
+          card.id = 'card-' + s.id;
+          container.appendChild(card);
+        }
         log('Загружена кампания #' + cid + ' (' + streams.length + ' потоков)');
       } catch (e) {
         showToast('Ошибка: ' + e, true);
       }
-    });
+    }
+    document.getElementById('load').addEventListener('click', loadStreams);
+
+    function addOffer(streamId, offerId) {
+      const st = getSt(streamId);
+      if (st.offers.find(o => o.offer_id === offerId)) { showToast('Уже добавлен', true); return; }
+      const off = allOffers.find(o => o.id === offerId);
+      st.offers.push({ offer_id: offerId, name: off ? off.name : ('Offer #' + offerId), weight: 0, pinned: false, status: 'active', pending: true });
+      st.dirty = true;
+      recalcWeights(st);
+      renderStreamById(streamId);
+      updateButtons(streamId);
+    }
+
+    function removeOffer(streamId, offerId) {
+      const st = getSt(streamId);
+      const o = st.offers.find(x => x.offer_id === offerId);
+      if (!o) return;
+      o.status = 'archived'; o.pending = true; o.weight = 0;
+      st.dirty = true;
+      recalcWeights(st);
+      renderStreamById(streamId);
+      updateButtons(streamId);
+    }
+
+    function restoreOffer(streamId, offerId) {
+      const st = getSt(streamId);
+      const o = st.offers.find(x => x.offer_id === offerId);
+      if (!o) return;
+      o.status = 'active'; o.pending = true; o.weight = 0;
+      st.dirty = true;
+      recalcWeights(st);
+      renderStreamById(streamId);
+      updateButtons(streamId);
+    }
+
+    function togglePin(streamId, offerId) {
+      const st = getSt(streamId);
+      const o = st.offers.find(x => x.offer_id === offerId);
+      if (!o || o.status !== 'active') return;
+      o.pinned = !o.pinned;
+      st.dirty = true;
+      recalcWeights(st);
+      renderStreamById(streamId);
+      updateButtons(streamId);
+    }
+
+    function renderStreamById(sid) {
+      const stream = window._streams.find(s => s.id === sid);
+      const card = document.getElementById('card-' + sid);
+      if (!card || !stream) return;
+      const newCard = renderStreamCard(stream);
+      newCard.id = 'card-' + sid;
+      card.replaceWith(newCard);
+    }
+
+    async function syncWithKeitaro(streamId) {
+      const st = getSt(streamId);
+      try {
+        const stream = await (await fetch('/api/editor/streams/' + streamId)).json();
+        const keitaroIds = new Set((stream.offers || []).map(o => o.offer_id));
+        st.offers.forEach(o => {
+          if (o.status === 'active' && !keitaroIds.has(o.offer_id)) {
+            o.status = 'archived'; o.pending = false;
+          }
+        });
+        (stream.offers || []).forEach(ko => {
+          if (!st.offers.find(o => o.offer_id === ko.offer_id)) {
+            const off = allOffers.find(o => o.id === ko.offer_id);
+            st.offers.push({ offer_id: ko.offer_id, name: off ? off.name : ('Offer #' + ko.offer_id), weight: ko.share, pinned: false, status: 'active', pending: false });
+          } else {
+            const o = st.offers.find(x => x.offer_id === ko.offer_id && x.status === 'active');
+            if (o) o.weight = ko.share;
+          }
+        });
+        st.dirty = false;
+        renderStreamById(streamId);
+        updateButtons(streamId);
+        showToast('Синхронизировано с Keitaro');
+        log('Проверка изменений для stream ' + streamId);
+      } catch (e) {
+        showToast('Ошибка синхронизации: ' + e, true);
+      }
+    }
+
+    async function confirmChanges(streamId) {
+      const st = getSt(streamId);
+      try {
+        const active = st.offers.filter(o => o.status === 'active').map(o => ({ offer_id: o.offer_id, share: o.weight }));
+        const r = await fetch('/api/editor/streams/' + streamId + '/offers/apply', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ offers: active }) });
+        const j = await r.json();
+        if (j.ok) {
+          showToast('Изменения применены');
+          log('Применены изменения для stream ' + streamId);
+          // reload from keitaro but keep archived
+          const archived = st.offers.filter(o => o.status === 'archived');
+          await loadStreamState(streamId);
+          const st2 = getSt(streamId);
+          archived.forEach(a => {
+            if (!st2.offers.find(o => o.offer_id === a.offer_id)) st2.offers.push({ ...a, pending: false });
+          });
+          st2.dirty = false;
+          renderStreamById(streamId);
+          updateButtons(streamId);
+        } else {
+          showToast(j.detail || 'Ошибка', true);
+        }
+      } catch (e) {
+        showToast('Ошибка: ' + e, true);
+      }
+    }
   </script>
 </body>
 </html>
