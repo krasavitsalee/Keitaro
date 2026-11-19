@@ -82,6 +82,9 @@
     }
 
     function getSt(sid) { return streamStates[sid]; }
+    function archiveKey(sid) { return 'archived_offers_' + sid; }
+    function loadArchive(sid) { try { return JSON.parse(localStorage.getItem(archiveKey(sid)) || '[]'); } catch(e){ return []; } }
+    function saveArchive(sid, archived) { localStorage.setItem(archiveKey(sid), JSON.stringify(archived)); }
 
     function recalcWeights(st) {
       const active = st.offers.filter(o => o.status === 'active');
@@ -337,6 +340,13 @@
         const off = allOffers.find(o => o.id === ko.offer_id);
         return { offer_id: ko.offer_id, name: off ? off.name : ('Offer #' + ko.offer_id), weight: ko.share, pinned: false, status: 'active', pending: false };
       });
+      // merge archived from localStorage
+      const archivedStored = loadArchive(streamId);
+      archivedStored.forEach(a => {
+        if (!st.offers.find(o => o.offer_id === a.offer_id)) {
+          st.offers.push({ offer_id: a.offer_id, name: a.name || ('Offer #' + a.offer_id), weight: 0, pinned: false, status: 'archived', pending: false });
+        }
+      });
       return stream;
     }
 
@@ -379,6 +389,8 @@
       o.status = 'archived'; o.pending = true; o.weight = 0;
       st.dirty = true;
       recalcWeights(st);
+      const archived = st.offers.filter(x => x.status === 'archived').map(x => ({ offer_id: x.offer_id, name: x.name, weight: x.weight }));
+      saveArchive(streamId, archived);
       renderStreamById(streamId);
       updateButtons(streamId);
     }
@@ -390,6 +402,8 @@
       o.status = 'active'; o.pending = true; o.weight = 0;
       st.dirty = true;
       recalcWeights(st);
+      const archived = st.offers.filter(x => x.status === 'archived').map(x => ({ offer_id: x.offer_id, name: x.name, weight: x.weight }));
+      saveArchive(streamId, archived);
       renderStreamById(streamId);
       updateButtons(streamId);
     }
@@ -433,6 +447,8 @@
             if (o) o.weight = ko.share;
           }
         });
+        const archivedNow = st.offers.filter(o => o.status === 'archived').map(x => ({ offer_id: x.offer_id, name: x.name, weight: x.weight }));
+        saveArchive(streamId, archivedNow);
         st.dirty = false;
         renderStreamById(streamId);
         updateButtons(streamId);
@@ -459,6 +475,8 @@
           archived.forEach(a => {
             if (!st2.offers.find(o => o.offer_id === a.offer_id)) st2.offers.push({ ...a, pending: false });
           });
+          const archivedNow = st2.offers.filter(o => o.status === 'archived').map(x => ({ offer_id: x.offer_id, name: x.name, weight: x.weight }));
+          saveArchive(streamId, archivedNow);
           st2.dirty = false;
           renderStreamById(streamId);
           updateButtons(streamId);
