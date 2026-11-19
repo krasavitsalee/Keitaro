@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 
@@ -13,7 +13,7 @@ class CampaignRecord(Base):
     domain_id = Column(Integer, nullable=True)
     group_id = Column(Integer, nullable=True)
     traffic_source_id = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class OfferChangeLog(Base):
@@ -23,4 +23,4 @@ class OfferChangeLog(Base):
     stream_id = Column(Integer, nullable=True)
     offer_id = Column(Integer, nullable=True)
     action = Column(String, nullable=False)  # add / remove
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
