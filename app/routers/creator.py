@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from app.database import get_db
@@ -54,7 +54,7 @@ def slugify(s: str) -> str:
 class CreateCampaignIn(BaseModel):
     name: str
     country_code: str
-    offer_id: int
+    offer_id: int = Field(gt=0)
     domain_id: Optional[int] = None
     group_id: Optional[int] = None
     traffic_source_id: Optional[int] = None

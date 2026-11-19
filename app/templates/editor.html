@@ -385,6 +385,7 @@
       try {
         localStorage.setItem('last_campaign', cid);
         const streams = await (await fetch('/api/editor/campaigns/' + cid + '/streams')).json();
+        if (!Array.isArray(streams)) { showToast('Ошибка загрузки потоков', true); return; }
         const container = document.getElementById('streams');
         container.innerHTML = '';
         window._streams = streams;
