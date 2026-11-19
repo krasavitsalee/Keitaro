@@ -344,10 +344,10 @@
       const q = e.target.value.toLowerCase();
       renderCampaigns(allCampaigns.filter(c => c.name.toLowerCase().includes(q)));
     });
-    loadCampaigns();
     (async () => {
       try { allOffers = await (await fetch('/api/editor/offers')).json(); }
       catch (e) { showToast('Ошибка загрузки офферов: ' + e, true); }
+      loadCampaigns();
     })();
 
     async function loadStreamState(streamId) {

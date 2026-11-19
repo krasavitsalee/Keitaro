@@ -131,7 +131,7 @@ class KeitaroClient:
             hay = " ".join(str(a.get(k, "")) for k in ("key", "name", "type", "description")).lower()
             if "redirect" in hay:
                 return a.get("key")
-        return actions[0].get("key") if actions else None
+        return actions[0].get("key") if actions else "http"
 
     def pick_landing_action(self) -> Optional[str]:
         try:
@@ -142,7 +142,7 @@ class KeitaroClient:
             hay = " ".join(str(a.get(k, "")) for k in ("key", "name", "type", "description")).lower()
             if "landing" in hay:
                 return a.get("key")
-        return actions[0].get("key") if actions else None
+        return actions[0].get("key") if actions else "http"
 
     def ensure_group(self, name: str = "test_group", type_: str = "campaigns") -> int:
         groups = self.list_groups(type_)

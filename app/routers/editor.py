@@ -149,9 +149,14 @@ def apply_offers(stream_id: int, payload: ApplyOffersIn, db: Session = Depends(g
     kt = KeitaroClient()
     stream = kt.get_stream(stream_id)
     # payload.offers: list of {offer_id, share}
+    seen = set()
     new_offers = []
     for o in payload.offers:
-        new_offers.append({"offer_id": o.get("offer_id"), "share": o.get("share", 100), "state": "active"})
+        oid = o.get("offer_id")
+        if oid in seen:
+            continue
+        seen.add(oid)
+        new_offers.append({"offer_id": oid, "share": o.get("share", 100), "state": "active"})
     new_payload = _stream_update_payload(stream, new_offers)
     updated = kt.update_stream(stream_id, new_payload)
     for o in new_offers:

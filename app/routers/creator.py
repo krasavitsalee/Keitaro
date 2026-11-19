@@ -94,7 +94,7 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     # check for duplicate campaign name
     try:
         existing = kt.list_campaigns()
-        if any(c.get("name") == payload.name for c in existing):
+        if any(str(c.get("name", "")).strip() == payload.name.strip() for c in existing):
             raise HTTPException(status_code=400, detail="Название кампании не может повторяться")
     except HTTPException:
         raise
@@ -131,7 +131,7 @@ def create_campaign(payload: CreateCampaignIn, db: Session = Depends(get_db)):
     cid = campaign["id"]
 
     # Stream 1: country -> Google (try 'country' filter, fallback to 'geo' for older Keitaro)
-    redirect_action = kt.pick_redirect_action() or "redirect"
+    redirect_action = kt.pick_redirect_action() or "http"
     stream1_payload = {
         "campaign_id": cid,
         "type": "regular",
